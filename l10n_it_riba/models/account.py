@@ -189,7 +189,7 @@ class AccountMove(models.Model):
         self.ensure_one()
         if self.partner_id.riba_policy_expenses != "unlimited":
             for d in all_date_due:
-                if invoice_date_due[:7] == str(d.strftime("%Y-%m")):
+                if invoice_date_due.strftime("%Y-%m") == str(d.strftime("%Y-%m")):
                     return True
         return False
 
@@ -254,11 +254,18 @@ class AccountMove(models.Model):
             move_line = move_line.sorted(key=lambda r: r.date_maturity)
             # ---- Get date
             previous_date_due = move_line.mapped("date_maturity")
-            pterm_list = invoice.invoice_payment_term_id.compute(
-                value=1, date_ref=invoice.invoice_date
+            pterm_list = invoice.invoice_payment_term_id._compute_terms(
+                date_ref=invoice.invoice_date,
+                currency=invoice.currency_id,
+                company=invoice.company_id,
+                tax_amount=1,
+                tax_amount_currency=1,
+                untaxed_amount=0,
+                sign=1 if invoice.is_inbound(include_receipts=True) else -1,
+                untaxed_amount_currency=invoice.amount_untaxed,
             )
             for pay_date in pterm_list:
-                if not invoice.month_check(pay_date[0], previous_date_due):
+                if not invoice.month_check(pay_date["date"], previous_date_due):
                     # ---- Get Line values for service product
                     service_prod = invoice.company_id.due_cost_service_id
                     account = service_prod.product_tmpl_id.get_product_accounts(
