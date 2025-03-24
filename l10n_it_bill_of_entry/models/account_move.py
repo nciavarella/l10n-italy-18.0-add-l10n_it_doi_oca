@@ -172,7 +172,7 @@ class AccountMove(models.Model):
             )
             boe_account = first(boe_payable_lines).account_id
             line_vals = {
-                "name": _("Customs supplier"),
+                "name": bill_of_entry.name,
                 "account_id": first(boe_account).id,
                 "debit": bill_of_entry.amount_total,
                 "credit": 0.0,
@@ -204,20 +204,21 @@ class AccountMove(models.Model):
 
     def _reconcile_bill_of_entry_storno(self, move):
         self.ensure_one()
-        reconcile_ids = []
-        for move_line in move.line_ids:
-            line_account = move_line.account_id
-            for boe in self.forwarder_bill_of_entry_ids:
-                boe_payable_lines = boe.line_ids.filtered(
-                    lambda line: line.account_type == "liability_payable"
-                )
-                boe_account = first(boe_payable_lines).account_id
-                if line_account == boe_account:
-                    reconcile_ids.append(move_line.id)
-                    for boe_move_line in boe.line_ids:
-                        if boe_move_line.account_id == boe_account:
-                            reconcile_ids.append(boe_move_line.id)
-        return self.env["account.move.line"].browse(reconcile_ids).reconcile()
+        move_line_ids = move.line_ids.filtered(
+            lambda line: line.account_type == "liability_payable"
+        )
+        for move_line in move_line_ids:
+            reconcile_ids = []
+            boe = self.forwarder_bill_of_entry_ids.filtered(
+                lambda boe, ml=move_line: boe.name == ml.name
+            )
+            reconcile_ids.append(move_line.id)
+            boe_line_ids = boe.line_ids.filtered(
+                lambda line: line.account_type == "liability_payable"
+            )
+            for boe_line in boe_line_ids:
+                reconcile_ids.append(boe_line.id)
+            self.env["account.move.line"].browse(reconcile_ids).reconcile()
 
     def action_post(self):
         res = super().action_post()
