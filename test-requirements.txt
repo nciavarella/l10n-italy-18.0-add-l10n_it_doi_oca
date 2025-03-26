@@ -1,0 +1,2 @@
+odoo18-addon-account_vat_period_end_statement @ git+https://github.com/OCA/l10n-italy@refs/pull/4675/head#subdirectory=setup/account_vat_period_end_statement
+odoo18-addon-l10n_it_appointment_code @ git+https://github.com/OCA/l10n-italy@refs/pull/4665/head#subdirectory=setup/l10n_it_appointment_code
